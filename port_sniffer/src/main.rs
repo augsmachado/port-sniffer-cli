@@ -9,7 +9,7 @@ use std::thread;
 const MAX: u16 = 65535;
 
 struct Arguments {
-    flag: String,
+    pub flag: String,
     ipaddr: IpAddr,
     threads: u16,
 }
@@ -64,11 +64,13 @@ fn scan(tx: Sender<u16>, start_port: u16, addr: IpAddr, num_threads: u16) {
     loop {
         match TcpStream::connect((addr, port)) {
             Ok(_) => {
-                print!(".");
+                println!(". Connected to the server!");
                 io::stdout().flush().unwrap();
                 tx.send(port).unwrap();
             }
-            Err(_) => {}
+            Err(_) => {
+                eprintln!("Couldn't connect to server!");
+            }
         }
 
         if (MAX - port) <= num_threads {
@@ -90,9 +92,11 @@ fn main() {
         }
     });
 
+    // Create threads to scan ports
     let num_threads = arguments.threads;
     let addr = arguments.ipaddr;
     let (tx, rx) = channel();
+    
     for i in 0..num_threads {
         let tx = tx.clone();
 
@@ -101,6 +105,7 @@ fn main() {
         });
     }
 
+    // Create a report of status' port
     let mut out = vec![];
     drop(tx);
     for p in rx {
